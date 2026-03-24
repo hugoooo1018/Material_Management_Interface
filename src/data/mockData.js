@@ -7,6 +7,7 @@ export const productOptions = [
   "DataPilot",
   "BrandCloud",
 ];
+export const materialTypeOptions = ["图片", "静图", "动图"];
 
 export const creators = [
   "Liam",
@@ -95,18 +96,24 @@ const rawAssets = [
 ];
 
 export const assets = rawAssets.map(
-  ([id, title, folderId, productName, reviewStatus, creator, createdAt, sizeMB, tags], index) => ({
-    id,
-    title,
-    folderId,
-    productName,
-    reviewStatus,
-    creator,
-    createdAt,
-    sizeMB,
-    tags,
-    kind: index % 4 === 0 ? "video" : index % 3 === 0 ? "document" : "image",
-  }),
+  ([id, title, folderId, productName, reviewStatus, creator, createdAt, sizeMB, tags], index) => {
+    const kind = index % 4 === 0 ? "video" : index % 3 === 0 ? "document" : "image";
+    const materialType =
+      kind === "video" ? "动图" : index % 2 === 0 ? "静图" : "图片";
+    return {
+      id,
+      title,
+      folderId,
+      productName,
+      reviewStatus,
+      creator,
+      createdAt,
+      sizeMB,
+      tags: [...tags, materialType],
+      kind,
+      materialType,
+    };
+  },
 );
 
 export const quickViews = {

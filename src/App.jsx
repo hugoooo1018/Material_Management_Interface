@@ -19,7 +19,6 @@ import {
   Star,
   LoaderCircle,
   Upload,
-  User,
   Video,
   X,
 } from "lucide-react";
@@ -27,12 +26,13 @@ import {
   assets as initialAssets,
   creators,
   folderTree,
+  materialTypeOptions,
   productOptions,
   quickViews,
   reviewStatusOptions,
 } from "./data/mockData";
 
-const brandGreen = "#67C23A";
+const brandGreen = "#2563EB";
 const mediaPlatforms = [
   { key: "Meta", logo: "M" },
   { key: "TikTok", logo: "T" },
@@ -70,15 +70,15 @@ const mediaAccountMap = {
 };
 
 function badgeColor(status) {
-  if (status === "已通过") return "bg-emerald-100 text-emerald-700";
-  if (status === "需修改") return "bg-amber-100 text-amber-700";
-  return "bg-slate-100 text-slate-700";
+  if (status === "已通过") return "bg-blue-100 text-blue-700";
+  if (status === "需修改") return "bg-indigo-100 text-indigo-700";
+  return "bg-sky-100 text-sky-700";
 }
 
 function kindIcon(kind) {
-  if (kind === "video") return <Video size={18} className="text-violet-500" />;
+  if (kind === "video") return <Video size={18} className="text-indigo-500" />;
   if (kind === "document") return <FileText size={18} className="text-sky-500" />;
-  return <Image size={18} className="text-emerald-500" />;
+  return <Image size={18} className="text-blue-500" />;
 }
 
 function flattenTree(nodes, parentId = null, depth = 0, list = []) {
@@ -112,8 +112,8 @@ function App() {
   const [folderKeyword, setFolderKeyword] = useState("");
   const [searchMode, setSearchMode] = useState("conditional");
   const [conditionProduct, setConditionProduct] = useState("");
+  const [conditionMaterialType, setConditionMaterialType] = useState("");
   const [conditionDate, setConditionDate] = useState("");
-  const [conditionCreator, setConditionCreator] = useState("");
   const [fuzzyQuery, setFuzzyQuery] = useState("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [viewMode, setViewMode] = useState("grid");
@@ -175,12 +175,10 @@ function App() {
     }
     if (searchMode === "conditional") {
       if (conditionProduct) list = list.filter((item) => item.productName === conditionProduct);
-      if (conditionDate) list = list.filter((item) => item.createdAt === conditionDate);
-      if (conditionCreator) {
-        list = list.filter((item) =>
-          item.creator.toLowerCase().includes(conditionCreator.toLowerCase()),
-        );
+      if (conditionMaterialType) {
+        list = list.filter((item) => item.materialType === conditionMaterialType);
       }
+      if (conditionDate) list = list.filter((item) => item.createdAt === conditionDate);
     } else if (fuzzyQuery) {
       const keyword = fuzzyQuery.toLowerCase();
       list = list.filter(
@@ -197,8 +195,8 @@ function App() {
     return list;
   }, [
     activeQuickView,
-    conditionCreator,
     conditionDate,
+    conditionMaterialType,
     conditionProduct,
     currentAssets,
     fuzzyQuery,
@@ -407,22 +405,33 @@ function App() {
     if (!uploadFiles.length || !uploadProduct) return;
     const creator = creators[Math.floor(Math.random() * creators.length)];
     const today = new Date().toISOString().split("T")[0];
-    const newAssets = uploadFiles.map((file, idx) => ({
-      id: `U${Date.now()}${idx}`,
-      title: file.name,
-      folderId: selectedFolderId,
-      productName: uploadProduct,
-      reviewStatus: uploadStatus,
-      creator,
-      createdAt: today,
-      sizeMB: file.sizeMB || Number((Math.random() * 20 + 1).toFixed(1)),
-      tags: [uploadProduct, "上传"],
-      kind: file.type?.startsWith("video")
+    const newAssets = uploadFiles.map((file, idx) => {
+      const kind = file.type?.startsWith("video")
         ? "video"
         : file.type?.includes("pdf") || file.type?.includes("text")
           ? "document"
-          : "image",
-    }));
+          : "image";
+      const materialType = file.type?.includes("gif")
+        ? "动图"
+        : file.type?.startsWith("video")
+          ? "动图"
+          : file.type?.startsWith("image")
+            ? "静图"
+            : "图片";
+      return {
+        id: `U${Date.now()}${idx}`,
+        title: file.name,
+        folderId: selectedFolderId,
+        productName: uploadProduct,
+        reviewStatus: uploadStatus,
+        creator,
+        createdAt: today,
+        sizeMB: file.sizeMB || Number((Math.random() * 20 + 1).toFixed(1)),
+        tags: [uploadProduct, "上传", materialType],
+        kind,
+        materialType,
+      };
+    });
     setAllAssets((prev) => [...newAssets, ...prev]);
     setUploadModalOpen(false);
   }
@@ -510,7 +519,7 @@ function App() {
                 }`}
                 onClick={() => setSearchMode("fuzzy")}
               >
-                模糊搜索
+                Query搜索
               </button>
             </div>
             {searchMode === "conditional" ? (
@@ -536,15 +545,18 @@ function App() {
                     className="w-full bg-transparent text-slate-700 outline-none"
                   />
                 </label>
-                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                  <User size={14} className="text-slate-500" />
-                  <input
-                    value={conditionCreator}
-                    onChange={(event) => setConditionCreator(event.target.value)}
-                    placeholder="创建者"
-                    className="w-full text-sm text-slate-700 outline-none"
-                  />
-                </label>
+                <select
+                  value={conditionMaterialType}
+                  onChange={(event) => setConditionMaterialType(event.target.value)}
+                  className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                >
+                  <option value="">素材类型（全部）</option>
+                  {materialTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
             ) : (
               <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2">
@@ -596,7 +608,7 @@ function App() {
               onClick={() => setActiveQuickView("departmentFavorites")}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${
                 activeQuickView === "departmentFavorites"
-                  ? "bg-violet-100 text-violet-700"
+                  ? "bg-blue-100 text-blue-700"
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100"
               }`}
             >
@@ -608,7 +620,7 @@ function App() {
               onClick={() => setActiveQuickView("personalFavorites")}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm ${
                 activeQuickView === "personalFavorites"
-                  ? "bg-amber-100 text-amber-700"
+                  ? "bg-blue-100 text-blue-700"
                   : "bg-slate-50 text-slate-600 hover:bg-slate-100"
               }`}
             >
@@ -660,7 +672,7 @@ function App() {
               <button
                 type="button"
                 onClick={openMediaUploadModal}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:border-[#67C23A] hover:bg-green-50 hover:text-green-700"
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700"
               >
                 <Upload size={15} />
                 上传素材到媒体库
@@ -678,7 +690,7 @@ function App() {
                   checked={allPageAssetsSelected}
                   onChange={toggleSelectAll}
                   disabled={!selectionEnabled || currentPageAssetIds.length === 0}
-                  className="h-4 w-4 accent-emerald-500"
+                  className="h-4 w-4 accent-blue-500"
                 />
                 全选当页
               </label>
@@ -701,7 +713,7 @@ function App() {
                 {batchMenuOpen ? (
                   <div className="absolute left-0 top-[110%] z-10 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-md">
                     <button type="button" onClick={() => handleBatchAction("move")} className="w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100">移动</button>
-                    <button type="button" onClick={() => handleBatchAction("delete")} className="w-full rounded-md px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">删除</button>
+                    <button type="button" onClick={() => handleBatchAction("delete")} className="w-full rounded-md px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50">删除</button>
                     <button type="button" onClick={() => handleBatchAction("download")} className="w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100">下载</button>
                     <button type="button" onClick={() => handleBatchAction("product")} className="w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100">修改产品归属</button>
                     <button type="button" onClick={() => handleBatchAction("favorite")} className="w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100">收藏</button>
@@ -725,12 +737,12 @@ function App() {
 
               <div className="ml-auto flex items-center gap-3">
                 {selectedCount > 0 ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700">
+                  <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
                     <span>已选 {selectedCount} 项</span>
                     <button type="button" onClick={clearSelection} className="font-medium underline-offset-2 hover:underline">
                       取消选择
                     </button>
-                    <span className="inline-flex items-center gap-1 text-emerald-800" title="系统总配额为 10 GB">
+                    <span className="inline-flex items-center gap-1 text-blue-800" title="系统总配额为 10 GB">
                       {selectedTotalSizeMB.toFixed(1)} MB / {(totalQuotaMB / 1024).toFixed(0)} GB
                       <CircleHelp size={14} />
                     </span>
@@ -758,7 +770,7 @@ function App() {
               </div>
             </div>
             {operationNotice ? (
-              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
                 {operationNotice}
               </div>
             ) : null}
@@ -783,7 +795,7 @@ function App() {
                   }}
                   className={`rounded-xl border bg-slate-50 p-3 transition ${
                     item.type === "asset" && selectedAssetIdsOnPage.includes(item.id)
-                      ? "border-emerald-400 ring-2 ring-emerald-100"
+                      ? "border-blue-400 ring-2 ring-blue-100"
                       : item.type === "folder"
                         ? "cursor-pointer border-slate-200 hover:border-blue-400 hover:bg-blue-50"
                         : "border-slate-200 hover:border-blue-300"
@@ -797,7 +809,7 @@ function App() {
                           checked={selectedAssetIdsOnPage.includes(item.id)}
                           onChange={() => toggleSelect(item.id)}
                           disabled={!selectionEnabled}
-                          className="h-4 w-4 accent-emerald-500"
+                          className="h-4 w-4 accent-blue-500"
                         />
                         选择
                       </label>
@@ -826,9 +838,14 @@ function App() {
                   </p>
                   {item.type === "asset" ? (
                     <>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.productName} | {item.creator}
-                      </p>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">
+                          {item.materialType}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {item.productName} | {item.creator}
+                        </span>
+                      </div>
                       <p className="mt-1 text-xs text-slate-500">
                         {item.createdAt} | {item.sizeMB} MB
                       </p>
@@ -846,6 +863,7 @@ function App() {
                   <tr>
                     <th className="px-3 py-2">选择</th>
                     <th className="px-3 py-2">名称</th>
+                    <th className="px-3 py-2">素材类型</th>
                     <th className="px-3 py-2">产品</th>
                     <th className="px-3 py-2">审核状态</th>
                     <th className="px-3 py-2">创建者</th>
@@ -870,7 +888,7 @@ function App() {
                           checked={selectedAssetIdsOnPage.includes(item.id)}
                           onChange={() => toggleSelect(item.id)}
                           disabled={item.type !== "asset" || !selectionEnabled}
-                          className="h-4 w-4 accent-emerald-500 disabled:cursor-not-allowed"
+                          className="h-4 w-4 accent-blue-500 disabled:cursor-not-allowed"
                         />
                       </td>
                       <td className="px-3 py-2">
@@ -878,6 +896,15 @@ function App() {
                           {item.type === "folder" ? <Folder size={16} className="text-blue-500" /> : kindIcon(item.kind)}
                           <span>{item.type === "folder" ? item.name : item.title}</span>
                         </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        {item.type === "asset" ? (
+                          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] text-blue-600">
+                            {item.materialType}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="px-3 py-2">{item.productName || "-"}</td>
                       <td className="px-3 py-2">
@@ -924,7 +951,7 @@ function App() {
             <div className="space-y-6 px-6 py-6">
               <div className="grid grid-cols-[140px_1fr] items-start gap-y-2">
                 <label className="pt-2 text-right text-sm text-slate-700">
-                  选择媒体平台 <span className="text-[#F56C6C]">*</span>
+                  选择媒体平台 <span className="text-blue-600">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2 lg:grid-cols-6">
                   {mediaPlatforms.map((platform) => (
@@ -934,8 +961,8 @@ function App() {
                       onClick={() => handlePlatformChange(platform.key)}
                       className={`inline-flex items-center justify-center gap-1 rounded border px-2 py-2 text-sm transition ${
                         mediaPlatform === platform.key
-                          ? "border-[#67C23A] bg-green-50 text-green-700"
-                          : "border-[#DCDFE6] text-slate-600 hover:border-[#67C23A]"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-[#DCDFE6] text-slate-600 hover:border-blue-400"
                       }`}
                     >
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold">
@@ -949,7 +976,7 @@ function App() {
 
               <div className="grid grid-cols-[140px_1fr] items-center gap-y-2">
                 <label className="text-right text-sm text-slate-700">
-                  同步类型 <span className="text-[#F56C6C]">*</span>
+                  同步类型 <span className="text-blue-600">*</span>
                 </label>
                 <div className="flex items-center gap-6 text-sm">
                   <label className="inline-flex items-center gap-2">
@@ -959,9 +986,9 @@ function App() {
                       value="account"
                       checked={syncType === "account"}
                       onChange={(event) => handleSyncTypeChange(event.target.value)}
-                      className="h-4 w-4 accent-[#67C23A]"
+                      className="h-4 w-4 accent-blue-600"
                     />
-                    <span className={syncType === "account" ? "text-green-700" : "text-slate-600"}>
+                    <span className={syncType === "account" ? "text-blue-700" : "text-slate-600"}>
                       账户
                     </span>
                   </label>
@@ -972,9 +999,9 @@ function App() {
                       value="bm"
                       checked={syncType === "bm"}
                       onChange={(event) => handleSyncTypeChange(event.target.value)}
-                      className="h-4 w-4 accent-[#67C23A]"
+                      className="h-4 w-4 accent-blue-600"
                     />
-                    <span className={syncType === "bm" ? "text-green-700" : "text-slate-600"}>BM</span>
+                    <span className={syncType === "bm" ? "text-blue-700" : "text-slate-600"}>BM</span>
                   </label>
                 </div>
               </div>
@@ -982,7 +1009,7 @@ function App() {
               <div className="grid grid-cols-[140px_1fr] items-start gap-y-2">
                 <label className="pt-2 text-right text-sm text-slate-700">
                   <span className="inline-flex items-center gap-1">
-                    选择广告账户 <span className="text-[#F56C6C]">*</span>
+                    选择广告账户 <span className="text-blue-600">*</span>
                     <CircleHelp size={14} className="text-slate-400" title="选择用于接收素材的广告账户" />
                   </span>
                 </label>
@@ -997,8 +1024,8 @@ function App() {
                       disabled={accountLoading}
                       className={`w-full rounded border px-3 py-2 text-sm outline-none ${
                         accountError
-                          ? "border-[#F56C6C] focus:ring-2 focus:ring-red-100"
-                          : "border-[#DCDFE6] focus:ring-2 focus:ring-green-100"
+                          ? "border-blue-500 focus:ring-2 focus:ring-blue-100"
+                          : "border-[#DCDFE6] focus:ring-2 focus:ring-blue-100"
                       } ${accountLoading ? "bg-slate-50 text-slate-400" : "bg-white text-slate-700"}`}
                     >
                       <option value="">
@@ -1022,7 +1049,7 @@ function App() {
                     ) : null}
                   </div>
                   {accountError ? (
-                    <p className="mt-1 text-xs text-[#F56C6C]">{accountError}</p>
+                    <p className="mt-1 text-xs text-blue-600">{accountError}</p>
                   ) : null}
                 </div>
               </div>
@@ -1034,7 +1061,7 @@ function App() {
                     type="button"
                     onClick={() => setScheduleUpload((prev) => !prev)}
                     className={`relative h-6 w-12 rounded-full transition ${
-                      scheduleUpload ? "bg-[#67C23A]" : "bg-slate-300"
+                      scheduleUpload ? "bg-blue-600" : "bg-slate-300"
                     }`}
                   >
                     <span
@@ -1050,7 +1077,7 @@ function App() {
                         min={getMinDatetime()}
                         value={scheduleDatetime}
                         onChange={(event) => setScheduleDatetime(event.target.value)}
-                        className="rounded border border-[#DCDFE6] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-100"
+                        className="rounded border border-[#DCDFE6] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
                   ) : null}
